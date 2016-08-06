@@ -1,0 +1,215 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Ellipse;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.utils.FloatArray;
+
+public class Ship {
+	
+	private Sprite bodyImage;
+	private Pixmap bodyPixmap;
+	private Polygon boundingPoly = new Polygon();
+	private FloatArray topHalfVerts;
+	private FloatArray botHalfVerts;
+	private FloatArray finalVerts;
+	
+	private float halfThreshold;
+	
+	private float x;
+	private float y;
+	private float amplitude;
+	private float period;
+	private float b;
+	private float speed;
+	private float functionX;
+	
+	public float width;
+	public float height;
+	public int colorVariable;
+	
+	private float randomnessConstant;
+	
+	public boolean done = false;
+	
+	private TextureAtlas textureAtlas;
+	
+	public Ship(float amplitude, float period, float speed, float yPosInit)
+	{
+		this.amplitude = amplitude;
+		this.period = period;
+		this.speed = speed;
+		this.randomnessConstant = MathUtils.random(1f, 0.25f);
+		
+		textureAtlas = Assets.textureAtlas;
+		
+		int rand = ShipRandomizer.randomInt(0, 2);
+		if(rand == 0)
+		{
+			bodyImage = new Sprite(textureAtlas.createSprite("shipImgBlue"));
+		} 
+		else if(rand == 1)
+		{
+			bodyImage = new Sprite(textureAtlas.createSprite("shipImg"));
+		} 
+		else 
+		{
+			bodyImage = new Sprite(textureAtlas.createSprite("shipImgGreen"));
+		}
+		colorVariable = rand;
+		
+		width = bodyImage.getWidth();
+		height = bodyImage.getHeight();
+		x = -bodyImage.getWidth();
+    b = yPosInit;
+    functionX = x;
+		
+    // -- making bounding polygon -- 
+		topHalfVerts = new FloatArray();
+		botHalfVerts = new FloatArray();
+		finalVerts = new FloatArray();
+		
+    bodyPixmap = new Pixmap(Gdx.files.internal("images/shipImg.png"));
+    halfThreshold = bodyPixmap.getHeight()/2 + 10;
+		
+    makePolyVerts(bodyPixmap);
+		boundingPoly = new Polygon(finalVerts.toArray());
+		boundingPoly.setScale(1, -1);
+	}
+	
+	/*
+	 * Make a polygon bounding the ship. Uses the individual pixels of the ship image, and places a vertex at each of the bounding pixels. A bounding pixel is determined from looking at 
+	 * 	 the alpha values of the pixels immediately next to it.
+	 */
+	private void makePolyVerts(Pixmap pixmap)
+	{
+		boolean collumnFull = false;
+		
+		// GETTING TOP HALF VERTS
+		for(int i = 0; i < pixmap.getWidth(); i++)
+		{
+			if(collumnFull == false)
+			{
+				yLoop:
+				for(int j = 0; j < halfThreshold; j++)
+				{
+					if(	new Color(pixmap.getPixel(i - 1, j)).a == 0 ||
+						new Color(pixmap.getPixel(i + 1, j)).a == 0 ||
+						new Color(pixmap.getPixel(i, j - 1)).a == 0 ||
+						new Color(pixmap.getPixel(i, j + 1)).a == 0)
+					{
+						if(new Color(pixmap.getPixel(i, j)).a != 0.0)
+						{
+							topHalfVerts.add(i);
+							topHalfVerts.add(j);
+							collumnFull = true;
+							break yLoop;
+						}
+					}
+				}
+			}
+			
+			collumnFull = false;
+		}
+		
+		// GETTING BOTTOM HALF VERTS
+		collumnFull = false;
+		for(int i = pixmap.getWidth() - 1; i > 0; i--)
+		{
+			if(collumnFull == false)
+			{
+				yLoop:
+				for(int j = pixmap.getHeight(); j > halfThreshold; j--)
+				{
+					if(	new Color(pixmap.getPixel(i - 1, j)).a == 0 ||
+						new Color(pixmap.getPixel(i + 1, j)).a == 0 ||
+						new Color(pixmap.getPixel(i, j - 1)).a == 0 ||
+						new Color(pixmap.getPixel(i, j + 1)).a == 0)
+					{
+						if(new Color(pixmap.getPixel(i, j)).a != 0.0)
+						{	
+							botHalfVerts.add(i);
+							botHalfVerts.add(j);
+							collumnFull = true;
+							break yLoop;
+						}
+					}
+				}
+			}
+			
+			collumnFull = false;
+		}
+		
+		// put top half verts into final verts array
+		finalVerts = topHalfVerts;
+
+		// combining top and bot half
+		int size = botHalfVerts.size;
+		for(int i = 0; i < size; i++)
+		{
+			finalVerts.add(botHalfVerts.get(0));
+			botHalfVerts.removeIndex(0);
+		}
+	}
+
+	public void update(SpriteBatch batch, boolean playing)
+	{
+		if(playing)
+		{
+			x += speed;
+			functionX++;
+			y = amplitude*MathUtils.sin(functionX/period) + amplitude*MathUtils.cos(functionX/period * randomnessConstant) + b;
+		
+			bodyImage.setRotation(((amplitude/period)*MathUtils.cos(functionX/period) * 5) 
+					+ -(amplitude * randomnessConstant/period)*MathUtils.sin(functionX/period * randomnessConstant));
+			
+			boundingPoly.setRotation(bodyImage.getRotation());
+		}
+		
+		bodyImage.setPosition(x, y);
+		boundingPoly.setOrigin(bodyImage.getOriginX(), bodyImage.getOriginY());
+		boundingPoly.setPosition(bodyImage.getX(), bodyImage.getY());
+		
+		bodyImage.draw(batch);
+	}
+	
+	public float getX()
+	{
+		return x;
+	}
+	
+	public float getY()
+	{
+		return y;
+	}
+	
+	public Rectangle getBoundingBox()
+	{
+		return bodyImage.getBoundingRectangle();
+	}
+	
+	public Polygon getBoundingPoly()
+	{
+		return boundingPoly;
+	}
+	
+	public Ellipse getCollisionShapes()
+	{
+		return new Ellipse(getBoundingBox().x, getBoundingBox().y, getBoundingBox().width, getBoundingBox().height);
+	}
+	
+	public Pixmap getPixmap()
+	{
+		bodyImage.getTexture().getTextureData().prepare();
+		
+		return bodyImage.getTexture().getTextureData().consumePixmap();
+	}
+
+}
