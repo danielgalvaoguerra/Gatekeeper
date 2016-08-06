@@ -1,0 +1,104 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.math.Rectangle;
+
+public class Pipes {
+	
+	public static final int TOP = 0;
+	public static final int MID = 1;
+	public static final int BOT = 2;
+	
+	public static final int BLUE_LASER = 0;
+	public static final int RED_LASER = 1;
+	public static final int GREEN_LASER = 2;
+
+	private float x = GameplayScreenFinal.PIPE_XPOS;
+	private float y = 0;
+	public float width;
+	public float height;
+	public float singlePipeHeight;
+	private int posInSet;
+	private int posMultiplier;
+	
+	private Sprite sprite;
+	
+	private TextureAtlas textureAtlas;
+	
+	public Pipes(int posInSet, int positionMultiplier)
+	{
+		this.posInSet = posInSet;
+		this.posMultiplier = positionMultiplier;
+		
+		textureAtlas = Assets.textureAtlas;
+		
+		sprite = new Sprite(textureAtlas.createSprite("miniPipes_withLaser"));
+		sprite.setPosition(x, y);
+		
+		width = sprite.getWidth();
+		height = sprite.getHeight();
+		singlePipeHeight = sprite.getHeight() / 6f;
+	}
+	
+	public void update(SpriteBatch batch, float y)
+	{
+		if(posInSet == TOP)
+		{
+			this.y = y + (sprite.getHeight()*posMultiplier);
+		}
+		if(posInSet == MID)
+		{
+			this.y = y;
+		}
+		if(posInSet == BOT)
+		{
+			this.y = y - (sprite.getHeight()*posMultiplier);
+		}
+		
+		sprite.setY(this.y);
+		sprite.draw(batch);
+	}
+	
+	public Rectangle[] getBoundsArray()
+	{
+		Rectangle[] rects = new Rectangle[4];
+		
+		// bottom-most half pipe
+		rects[0] = new Rectangle(x, y, width, singlePipeHeight / 2f);
+		
+		// second pipe from the bottom
+		rects[1] = new Rectangle(x, y + singlePipeHeight*1.5f, width, singlePipeHeight);
+		
+		// second pipe from the top
+		rects[2] = new Rectangle(x, y + singlePipeHeight*3.5f, width, singlePipeHeight);
+		
+		// top-most half pipe
+		rects[3] = new Rectangle(x, y + singlePipeHeight*5.5f, width, singlePipeHeight / 2f);
+		
+		return rects;
+	}
+	
+	public Rectangle[] getLaserBounds()
+	{
+		Rectangle[] rects = new Rectangle[3];
+		
+		rects[BLUE_LASER] = new Rectangle(x + 20, y + singlePipeHeight*4.5f, width - 40, singlePipeHeight);
+		rects[RED_LASER] = new Rectangle(x + 20, y + singlePipeHeight*2.5f, width - 40, singlePipeHeight);
+		rects[GREEN_LASER] = new Rectangle(x + 20, y + singlePipeHeight/2f, width - 40, singlePipeHeight);
+		
+		return rects;
+	}
+	
+	public float getY(){
+		return y;
+	}
+	
+	public void changeProperties(int newPos, int newMultiplier)
+	{
+		posInSet = newPos;
+		posMultiplier = newMultiplier;
+	}
+}
