@@ -1,0 +1,67 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
+public class LaserDeath {
+	
+	private static final int COLS = 10;
+	private static final int ROWS = 3;
+	
+	private Animation animation;
+	private Texture spriteSheet;
+	private TextureRegion[] animationFrames;
+	private TextureRegion currentFrame;
+	private Sprite tempSprite;
+	
+	private float x;
+	private float y;
+	
+	private static float privateStateTime;
+	
+	public LaserDeath(float x, float y)
+	{
+		this.x = x;
+		this.y = y;
+		privateStateTime = 0;
+		
+		spriteSheet = Assets.manager.get("images/laserDeathSS.png", Texture.class);
+		spriteSheet.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		
+		TextureRegion[][] temp = TextureRegion.split(spriteSheet, spriteSheet.getWidth()/COLS, spriteSheet.getHeight()/ROWS);
+		animationFrames = new TextureRegion[COLS * ROWS];
+		int index = 0;
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+            	animationFrames[index++] = temp[i][j];
+            }
+        }
+        animation = new Animation(0.025f, animationFrames);
+	}
+	
+	public void update(SpriteBatch batch, float delta)
+	{
+		privateStateTime += delta * (5/8f);
+		
+		if(!animation.isAnimationFinished(privateStateTime))
+		{
+			currentFrame = animation.getKeyFrame(privateStateTime, false);
+			tempSprite = new Sprite(currentFrame);
+			tempSprite.setPosition(x, y);
+			tempSprite.draw(batch);
+		}
+	}
+	
+	public boolean isAnimationFinished()
+	{
+		return animation.isAnimationFinished(privateStateTime);
+	}
+	
+	public void dispose(){
+		spriteSheet.dispose();
+	}
+
+}
