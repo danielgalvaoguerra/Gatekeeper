@@ -1,0 +1,57 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
+public class SplashAnimation {
+	
+	private static final int COLS = 7;
+	private static final int ROWS = 2;
+	private static final int ssWidth = 3780;
+	private static final int ssHeight = 1920;
+	
+	private Animation animation;
+	private Texture spriteSheet;
+	private TextureRegion[] animationFrames;
+	private TextureRegion currentFrame;
+	private Sprite tempSprite;
+	
+	private static float privateStateTime = 0;
+	
+	public SplashAnimation()
+	{
+		spriteSheet = Assets.manager.get("images/loadingScreenSS.png", Texture.class);
+		
+		spriteSheet.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		
+		TextureRegion[][] temp = TextureRegion.split(spriteSheet, ssWidth/COLS, ssHeight/ROWS);
+		animationFrames = new TextureRegion[COLS * ROWS];
+		int index = 0;
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+            	animationFrames[index++] = temp[i][j];
+            }
+        }
+        animation = new Animation(0.025f, animationFrames);
+	}
+	
+	public void update(SpriteBatch batch, float delta)
+	{
+		privateStateTime += delta * (3/8f);
+		
+		currentFrame = animation.getKeyFrame(privateStateTime, false);
+		tempSprite = new Sprite(currentFrame);
+		tempSprite.setSize(720, 1280);
+		tempSprite.setPosition(0, 0);
+		tempSprite.draw(batch);
+	}
+	
+	public boolean isAnimationDone()
+	{
+		return animation.isAnimationFinished(privateStateTime);
+	}
+
+}
