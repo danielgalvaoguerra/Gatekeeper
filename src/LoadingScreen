@@ -1,0 +1,109 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.Game;
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Timer;
+import com.badlogic.gdx.utils.Timer.Task;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+
+public class LoadingScreen implements Screen {
+	
+	SpriteBatch batch;
+	Texture t;
+	Sprite s;
+	
+	Camera camera;
+	Viewport vp;
+	
+	private Sound introSound;
+	private long introSoundID;
+	
+	boolean scheduled = false;
+	boolean animationDone = false;
+	
+	private SplashAnimation splashAni;
+	private boolean animationLoaded = false;
+	
+	@Override
+	public void show() {
+		camera = new OrthographicCamera(720, 1280);
+		vp = new FitViewport(720, 1280, camera);
+		camera.position.set(360, 640, 0);
+		
+		System.out.println("Begin Loading");
+		Assets.beginLoading();
+		
+		batch = new SpriteBatch();
+		t = new Texture("images/loadingImage.png");
+		s = new Sprite(t);
+		s.setPosition(0, 0);
+		s.setSize(vp.getWorldWidth(), vp.getWorldHeight());
+		
+		// set up sound
+		introSound = Gdx.audio.newSound(Gdx.files.internal("sounds/splashSound.mp3"));
+	}
+
+	@Override
+	public void render(float delta) {
+		camera.update();
+		
+		batch.setProjectionMatrix(camera.combined);
+		
+		batch.begin();
+		if(animationLoaded)
+		{
+			splashAni.update(batch, delta);
+		}
+		else
+		{
+			s.draw(batch);
+		}
+		batch.end();
+		
+		if(Assets.update() && animationLoaded == false)
+		{
+			animationLoaded = true;
+			System.out.println("ANIMATION LOADED");
+			splashAni = new SplashAnimation();
+			introSoundID = introSound.play(0.5f);
+			Timer.schedule(new Task() {
+				
+				@Override
+				public void run() {
+					Assets.setTextureAtlas();
+					((Game)Gdx.app.getApplicationListener()).setScreen(new GameplayScreenFinal());
+					introSound.stop(introSoundID);
+					dispose();
+				}
+			}, 3);
+		}
+
+	}
+
+	public void resize(int width, int height) {}
+
+	@Override
+	public void pause() {}
+
+	@Override
+	public void resume() {}
+
+	@Override
+	public void hide() {}
+
+	@Override
+	public void dispose() {
+		batch.dispose();
+		t.dispose();
+		introSound.dispose();
+	}
+
+}
