@@ -1,0 +1,551 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Preferences;
+import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Camera;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Polygon;
+import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
+
+public class GameplayScreenFinal implements Screen {
+	
+	// DEATH VARIABLES
+	private static final int PIPE_DEATH = 0;
+	private static final int LASER_DEATH = 1;
+	private int deathCause = -1;
+	
+	// SHIP VARIABLES
+	public static final float INIT_SHIP_SPEED = 3.5f;
+	public static final float INIT_SPEED_INC = 0.15f;
+	public static float SHIP_SPEED = INIT_SHIP_SPEED;
+	private static float SPEED_INC = INIT_SPEED_INC;
+	private Ship[] shipArray = new Ship[1];
+	
+	private int pointsForPass = 100;
+	private ExplosionAnimation[] explosionArray = new ExplosionAnimation[1];
+	
+	// PIPE VARIABLES
+	public static float PIPE_XPOS;
+	private Pipes[] pipesArray;
+	private Pipes pipeSet1;
+	private Pipes pipeSet2;
+	private Pipes pipeSet3;
+	private float pipesYPos;
+	
+	private LaserDeath[] laserDeathArray = new LaserDeath[1];
+	
+	// INPUT VARIABLES
+	private float velocity;
+	private float deltaCounter;
+	
+	// GENERAL NEEDS
+	public static float STATE_TIME;
+	public static Viewport viewport;
+	public static Camera camera;
+	private SpriteBatch batch;
+	private ShapeRenderer shapeRenderer;
+	private boolean playing = false;
+	private boolean firstTime = true;
+	private boolean paused = false;
+	
+	private Sprite fadeawaySprite;
+	private Sprite whiteShipSprite;
+
+	private BitmapFont scoreFont;
+	private BitmapFont gameOverScoreFont;
+	
+	private int score = 0;
+	private ScorePopup[] popupArray = new ScorePopup[1];
+	
+	private TextureAtlas textureAtlas;
+	private AssetManager privateManager;
+	
+	private Sprite backgroundImage;
+	
+	private Vector2 screenCenter = new Vector2();
+	
+	// -- GAME OVER STUFF -- //
+	
+	private float[] screenShakeOffsets = {	-5, 3, -4, 2, -1, 4, -3, 5, -2 , 1, -3 , 2, -4, 4, -2, 3, -1,
+											-5, 3, -4, 2, -1, 4, -3, 5, -2 , 1, -3 , 2, -4, 4, -2, 3, 1,
+											-5, 3, -4, 2, -1, 4, -3, 5, -1};
+	
+	private int shakeCount = 0;
+	
+	private Sprite gameOverPanelSprite;
+	private Vector2 currentScorePos = new Vector2(500, 518);
+	private Vector2 maxScorePos = new Vector2(500, 385);
+	
+	CustomBtn retryBtn;
+	private Vector2 retryBtnPos = new Vector2(52, 85);
+	
+	CustomBtn startBtn;
+	CustomBtn pauseBtn;
+	
+	Preferences prefs = Gdx.app.getPreferences("My Preferences");
+	
+	@Override
+	public void show() {
+		System.out.println("SHOWING");
+		
+		STATE_TIME = 0;
+		
+        camera = new OrthographicCamera();
+        viewport = new FitViewport(720, 1280, camera);
+        viewport.apply();
+        camera.position.set(viewport.getWorldWidth()/2f, viewport.getWorldHeight()/2f, 0);
+        
+        shipArray[0] = ShipRandomizer.makeNewShip();
+
+        batch = new SpriteBatch();
+		shapeRenderer = new ShapeRenderer();
+		
+		// INITIALIZING FONTS
+		privateManager = Assets.manager;
+		scoreFont = privateManager.get("fonts/warpDrive56.fnt", BitmapFont.class);
+		scoreFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		gameOverScoreFont = privateManager.get("fonts/warpDrive32.fnt", BitmapFont.class);
+		gameOverScoreFont.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		
+		// INPUTS STUFF
+		velocity = 0;
+		deltaCounter = 0;
+		
+		textureAtlas = Assets.textureAtlas;
+		retryBtn = new CustomBtn(false, new Sprite(textureAtlas.createSprite("btnTemplate")), false);
+		startBtn = new CustomBtn(false, new Sprite(textureAtlas.createSprite("playButton")), false);
+		pauseBtn = new CustomBtn(true, Assets.textureAtlas.createSprite("pause"), true);
+		
+		// BACKGROUND IMG
+		backgroundImage = textureAtlas.createSprite("gatekeeper_BG");
+		backgroundImage.setPosition(0, 0);
+		backgroundImage.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
+		
+		fadeawaySprite = textureAtlas.createSprite("loadingImage");
+		fadeawaySprite.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
+		fadeawaySprite.setPosition(0, 0);
+		whiteShipSprite = textureAtlas.createSprite("whiteShip");
+		whiteShipSprite.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
+		whiteShipSprite.setPosition(0, 0);
+		
+		gameOverPanelSprite = new Sprite(textureAtlas.createSprite("gameOverPanel"));
+		gameOverPanelSprite.setSize(viewport.getWorldWidth(), viewport.getWorldHeight());
+		gameOverPanelSprite.setPosition(0, 0);
+		
+		// PIPE INITIALIZING
+		PIPE_XPOS = viewport.getWorldWidth()/2f + 180;
+		pipeSet1 = new Pipes(Pipes.TOP, 1);
+		pipeSet2 = new Pipes(Pipes.MID, 1);
+		pipeSet3 = new Pipes(Pipes.BOT, 1);
+
+		pipesArray = new Pipes[3];
+		pipesArray[0] = pipeSet1;
+		pipesArray[1] = pipeSet2;
+		pipesArray[2] = pipeSet3;
+		
+		pipesYPos = 0;
+
+		prefs.putInteger("max", score);
+		prefs.flush();
+		
+	}
+
+	@Override
+	public void render(float delta) { 
+		// SETTING VARIABLES, MATRICES, VIEWPORT ETC..
+		camera.update();
+        batch.setProjectionMatrix(camera.combined);
+        shapeRenderer.setProjectionMatrix(camera.combined);
+        
+        screenCenter.set(camera.position.x, camera.position.y);
+        
+		Gdx.gl.glClearColor(0, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT | (Gdx.graphics.getBufferFormat().coverageSampling?GL20.GL_COVERAGE_BUFFER_BIT_NV:0));
+		
+		STATE_TIME += delta * (5/8f);
+
+		// ------x-------x------x------x------
+		
+		handleInput();
+		
+		// SPRITE BATCH, DRAWING EVERYTHING
+		batch.begin();
+			backgroundImage.draw(batch);
+		
+			for(Pipes pipeSet : pipesArray)
+			{
+				pipeSet.update(batch, pipesYPos);
+			}
+		
+			scoreFont.draw(batch, ((Integer)score).toString(), 20, viewport.getWorldHeight() - 20);
+			scoreFont.draw(batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 20, 50);
+		
+			shipArray[0].update(batch, playing);
+			
+			// IF NOT PLAYING OR NOT
+			if(playing == false)
+			{
+				if(firstTime == false)
+				{
+					if(paused == false)
+					{
+						if(deathCause == PIPE_DEATH)
+						{
+							// animate explosion, shake screen, then display game over panel
+							explosionArray[0].update(batch, delta);
+							if(shakeCount < screenShakeOffsets.length)
+							{
+								camera.position.set(camera.position.x + screenShakeOffsets[shakeCount++], camera.position.y, camera.position.z);
+							}
+							else
+							{
+								displayGameOverPanel();
+							}
+						}
+						else if(deathCause == LASER_DEATH)
+						{
+							if(!laserDeathArray[0].isAnimationFinished())
+							{
+								laserDeathArray[0].update(batch, delta);
+							}
+							else
+							{
+								displayGameOverPanel();
+							}
+						}
+					}
+					else // paused == true
+					{
+						pauseBtn.draw(batch, 0, 0);
+						if(buttonClicked(pauseBtn))
+						{
+							playing = true;
+							paused = false;
+						}
+					}
+				}
+				else // firstTime == true
+				{
+					startBtn.draw(	batch, 
+									viewport.getWorldWidth()/2f - startBtn.getBounds().width/2f, 
+									viewport.getWorldHeight()/2f - startBtn.getBounds().height/2f);
+					if(buttonClicked(startBtn))
+					{
+						playing = true;
+						firstTime = false;
+					}
+				}
+			}
+		
+			if(popupArray[0] != null)
+			{
+				popupArray[0].drawScore(batch);
+			}
+			
+			if(firstTime == true && playing == false)
+			{
+				fadeAwayImage();
+			}
+			
+		batch.end();
+		
+		detectPipeCollisions();
+
+		organizePipes();
+
+		// if ship passes pipe and you get points
+		if(shipArray[0].getX() >= PIPE_XPOS + pipesArray[1].width && shipArray[0].done == false)
+		{
+			score += pointsForPass;
+			shipArray[0].done = true;
+			
+			popupArray[0] = new ScorePopup(shipArray[0].getX(), shipArray[0].getY(), pointsForPass);
+		}
+		if(shipArray[0].getX() >= viewport.getWorldWidth())
+		{
+			SPEED_INC += 0.005f;
+			SHIP_SPEED += SPEED_INC;
+			
+			shipArray[0] = ShipRandomizer.makeNewShip();
+		}
+		
+		if(shipArray[0].getX() + shipArray[0].width >= PIPE_XPOS - 20 && shipArray[0].getX() + shipArray[0].width <= PIPE_XPOS + 20)
+		{
+			detectLaserCollisions();
+		}
+		
+	}
+	
+	private void fadeAwayImage()
+	{
+		if(fadeawaySprite.getColor().a > 0.1)
+		{
+			fadeawaySprite.setX(fadeawaySprite.getX() - 1);
+			fadeawaySprite.setAlpha(fadeawaySprite.getColor().a - 0.01f);	
+			fadeawaySprite.draw(batch);
+		}
+		
+		if(playing == false)
+		{
+			whiteShipSprite.draw(batch);
+		}
+
+	}
+	
+	private void displayGameOverPanel()
+	{
+		if(score > prefs.getInteger("max"))
+		{
+			prefs.putInteger("max", score);
+			prefs.flush();
+		}
+		gameOverPanelSprite.draw(batch);
+		gameOverScoreFont.draw(batch, ((Integer)score).toString(), currentScorePos.x, currentScorePos.y);
+		gameOverScoreFont.draw(batch, ((Integer)prefs.getInteger("max")).toString(), maxScorePos.x, maxScorePos.y);
+		retryBtn.draw(batch, retryBtnPos.x, retryBtnPos.y);
+		if(buttonClicked(retryBtn))
+		{
+			restartGame();
+			camera.position.set(viewport.getWorldWidth()/2f, viewport.getWorldHeight()/2f, 0);
+			shakeCount = 0;
+		}
+	}
+	
+	private boolean buttonClicked(CustomBtn button)
+	{
+		if(Gdx.input.isTouched())
+		{
+			Vector3 touchPosition = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+			camera.unproject(touchPosition);
+			
+			if(button.getBounds().contains(touchPosition.x, touchPosition.y))
+			{
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	private void handleInput()
+	{
+		if(playing)
+		{
+			if(Gdx.input.isTouched())
+			{
+				float dy = Gdx.input.getDeltaY();
+				deltaCounter++;
+				
+				if(deltaCounter > 2) // just to make sure the first few dy's which are always 0 aren't counted
+				{
+					if(dy != 0)
+					{
+						velocity += -dy / 20f;
+					}
+					else
+					{
+						velocity = 0;
+					}
+				}
+				else
+				{
+					velocity += -dy / 50f;
+				}
+			}
+			else
+			{
+				deltaCounter = 0;
+			}
+			
+			velocity -= velocity*0.02f; // simulated friction
+			pipesYPos += velocity;
+		}
+		else
+		{
+			velocity = 0;
+			deltaCounter = 0;
+			
+		}
+		
+		
+	}
+	
+	private void detectPipeCollisions()
+	{
+		for(Pipes pipeSet : pipesArray)
+		{
+			for(Rectangle r : pipeSet.getBoundsArray())
+			{
+				if(shipArray[0].getBoundingBox().overlaps(r))
+				{
+					
+					// make a polygon the shape of the pipe rectangle
+					Polygon rectPoly = new Polygon(new float[] { 	r.x, 			r.y + r.height, 
+																	r.x + r.width, 	r.y + r.height, 
+																	r.x + r.width, 	r.y, 
+																	r.x, 			r.y });
+					
+					if(playing == true && Intersector.overlapConvexPolygons(shipArray[0].getBoundingPoly(), rectPoly) == true)
+					{
+						deathCause = PIPE_DEATH;
+						playing = false;
+
+						Vector2 collisionPoint = getCollisionPoint(0, shipArray[0].getBoundingPoly().getTransformedVertices(), r);
+						explosionArray[0] = (new ExplosionAnimation(collisionPoint.x, 	
+																	collisionPoint.y));
+
+					}
+				}
+			}
+		}
+	}
+	
+	private Vector2 getCollisionPoint(int iteration, float[] verts, Rectangle r)
+	{
+		Vector2 topLeft = new Vector2(r.x - (iteration*1), r.y + r.height + (iteration*1));
+		Vector2 topRight = new Vector2(r.x + r.width + (iteration*1), r.y + r.height + (iteration*1));
+		Vector2 botRight = new Vector2(r.x + r.width + (iteration*1), r.y - (iteration*1));
+		Vector2 botLeft = new Vector2(r.x - (iteration*1), r.y - (iteration*1));
+		
+		Vector2 intersectionPoint = new Vector2(0,0);
+		
+		for(int i = 0; i < verts.length; i+=4)
+		{
+			if(Intersector.intersectSegments(botLeft, topLeft, 
+											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+											intersectionPoint))
+			{
+				System.out.println("Left " + i + ", iteration: " + iteration);
+				return intersectionPoint;
+			}
+			if(Intersector.intersectSegments(botLeft, botRight, 
+											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+											intersectionPoint))
+			{
+				System.out.println("Bottom " + i + ", iteration: " + iteration);
+				return intersectionPoint;
+			}
+			if(Intersector.intersectSegments(botRight, topRight, 
+											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+											intersectionPoint))
+			{
+				System.out.println("Right " + i + ", iteration: " + iteration);
+				return intersectionPoint;
+			}
+			if(Intersector.intersectSegments(topRight, topLeft, 
+											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+											intersectionPoint))
+			{
+				System.out.println("Top " + i + ", iteration: " + iteration);
+				return intersectionPoint;
+			}
+		}
+		
+		return getCollisionPoint(iteration+1, verts, r);
+		
+	}
+	
+	private void detectLaserCollisions()
+	{
+		for(Pipes pipeSet : pipesArray)
+		{
+			for(int i = 0; i <= 2; i++)
+			{
+				Rectangle r = pipeSet.getLaserBounds()[i];
+				
+				if(shipArray[0].getBoundingBox().overlaps(r))
+				{
+					
+					// make a polygon the shape of the pipe rectangle
+					Polygon rectPoly = new Polygon(new float[] { 	r.x, 			r.y + r.height, 
+																	r.x + r.width, 	r.y + r.height, 
+																	r.x + r.width, 	r.y, 
+																	r.x, 			r.y });
+					
+					if(Intersector.overlapConvexPolygons(shipArray[0].getBoundingPoly(), rectPoly) == true && playing == true)
+					{
+						laserDeathArray[0] = new LaserDeath(r.x - 21, r.y - 20);
+						if(shipArray[0].colorVariable != i)
+						{
+							deathCause = LASER_DEATH;
+							playing = false;
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private void organizePipes()
+	{
+		if(pipesArray[0].getY() <= 200 && pipesArray[0].getY() >= 0)
+		{
+			pipesYPos = pipesArray[0].getY();
+		} 
+		
+		else if(pipesArray[0].getY() <= (pipesArray[0].height*2f) && pipesArray[0].getY() >= (pipesArray[0].height*2f) - 200)
+		{
+			pipesYPos = pipesArray[2].getY();
+		}
+	}
+	
+	private void restartGame()
+	{
+		score = 0;
+		
+		playing = true;
+		shipArray[0] = ShipRandomizer.makeNewShip();
+		
+		SHIP_SPEED = INIT_SHIP_SPEED;
+		SPEED_INC = INIT_SPEED_INC;
+	}
+	
+	private void pauseGame()
+	{
+		playing = false;
+		paused = true;
+	}
+
+	@Override
+	public void resize(int width, int height) {
+
+		camera = new OrthographicCamera(720, 1280);
+		camera.position.set(360, 640, 0);
+		camera.update();
+
+		viewport.setCamera(camera);
+		viewport.update(width, height);
+	}
+
+	@Override
+	public void pause() {
+		prefs.flush();
+		pauseGame();
+	}
+	
+	@Override
+	public void dispose() {
+		this.dispose();
+		batch.dispose();
+	}
+
+	@Override
+	public void resume() {}
+	@Override
+	public void hide() {}
+}
