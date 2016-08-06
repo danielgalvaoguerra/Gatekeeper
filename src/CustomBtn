@@ -1,0 +1,55 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.math.Rectangle;
+
+public class CustomBtn {
+	
+	Sprite btnSprite = null;
+	private float x;
+	private float y;
+	public float width;
+	public float height;
+	
+	private boolean drawImage;
+	
+	public CustomBtn(boolean drawImage, Sprite btnSprite, boolean scale)
+	{
+		this.drawImage = drawImage;
+		
+		btnSprite.getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
+		this.btnSprite = btnSprite;
+		this.btnSprite.setPosition(x, y);
+		if(scale)
+		{
+			this.btnSprite.setSize(720,  1280);
+		}
+		width = this.btnSprite.getWidth();
+		height = this.btnSprite.getHeight();
+	}
+	
+	public void draw(Batch batch, float x, float y)
+	{
+		this.x = x;
+		this.y = y;
+		btnSprite.setPosition(x, y);
+		
+		if(drawImage == true)
+		{
+			btnSprite.draw(batch);
+		}
+	}
+	
+	public Sprite getSprite()
+	{
+		return btnSprite;
+	}
+	
+	public Rectangle getBounds()
+	{
+		return btnSprite.getBoundingRectangle();
+	}
+	
+}
