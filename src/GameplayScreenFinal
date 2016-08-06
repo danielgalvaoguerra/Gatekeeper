@@ -242,8 +242,8 @@ public class GameplayScreenFinal implements Screen {
 				else // firstTime == true
 				{
 					startBtn.draw(	batch, 
-									viewport.getWorldWidth()/2f - startBtn.getBounds().width/2f, 
-									viewport.getWorldHeight()/2f - startBtn.getBounds().height/2f);
+							viewport.getWorldWidth()/2f - startBtn.getBounds().width/2f, 
+							viewport.getWorldHeight()/2f - startBtn.getBounds().height/2f);
 					if(buttonClicked(startBtn))
 					{
 						playing = true;
@@ -342,6 +342,10 @@ public class GameplayScreenFinal implements Screen {
 		return false;
 	}
 	
+	/*
+	* Handle scrolling motion of pipes. Simple touch-drag mechanic. Uses simulated "friction" so that pipes slowly come to a stop,
+	*   much like scrolling in native iOS apps.
+	*/
 	private void handleInput()
 	{
 		if(playing)
@@ -381,10 +385,12 @@ public class GameplayScreenFinal implements Screen {
 			deltaCounter = 0;
 			
 		}
-		
-		
 	}
 	
+	/*
+	* Checks if ship is hitting any of the pipes. First checks if the ship's bounding box is hitting the pipes, if true,
+	*   if checks further if the ship's polygon bounds is hitting that pipe
+	*/
 	private void detectPipeCollisions()
 	{
 		for(Pipes pipeSet : pipesArray)
@@ -395,10 +401,10 @@ public class GameplayScreenFinal implements Screen {
 				{
 					
 					// make a polygon the shape of the pipe rectangle
-					Polygon rectPoly = new Polygon(new float[] { 	r.x, 			r.y + r.height, 
-																	r.x + r.width, 	r.y + r.height, 
-																	r.x + r.width, 	r.y, 
-																	r.x, 			r.y });
+					Polygon rectPoly = new Polygon(new float[] { 	r.x, 		r.y + r.height, 
+											r.x + r.width, 	r.y + r.height, 
+											r.x + r.width, 	r.y, 
+											r.x, 		r.y });
 					
 					if(playing == true && Intersector.overlapConvexPolygons(shipArray[0].getBoundingPoly(), rectPoly) == true)
 					{
@@ -406,8 +412,7 @@ public class GameplayScreenFinal implements Screen {
 						playing = false;
 
 						Vector2 collisionPoint = getCollisionPoint(0, shipArray[0].getBoundingPoly().getTransformedVertices(), r);
-						explosionArray[0] = (new ExplosionAnimation(collisionPoint.x, 	
-																	collisionPoint.y));
+						explosionArray[0] = (new ExplosionAnimation(collisionPoint.x, collisionPoint.y));
 
 					}
 				}
@@ -415,6 +420,14 @@ public class GameplayScreenFinal implements Screen {
 		}
 	}
 	
+	/*
+	* Iterates recursively, each time increasing the size of ship polygon bounds, until it intersects a point in the pipe's bounds
+	* This is needed because collision detection was impefect, and at times would trigger when the ship was close, but not touching,
+	*   the pipes. 
+	* interation the iteration counter, used to increase the ship bounds
+	* verts an array of floats containing the verteces of the ship polygon bounds
+	* r the rectangle representing the bounds of the closest pipe (the one it's supposed to be hitting)
+	*/
 	private Vector2 getCollisionPoint(int iteration, float[] verts, Rectangle r)
 	{
 		Vector2 topLeft = new Vector2(r.x - (iteration*1), r.y + r.height + (iteration*1));
@@ -427,29 +440,29 @@ public class GameplayScreenFinal implements Screen {
 		for(int i = 0; i < verts.length; i+=4)
 		{
 			if(Intersector.intersectSegments(botLeft, topLeft, 
-											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
-											intersectionPoint))
+				new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+				intersectionPoint))
 			{
 				System.out.println("Left " + i + ", iteration: " + iteration);
 				return intersectionPoint;
 			}
 			if(Intersector.intersectSegments(botLeft, botRight, 
-											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
-											intersectionPoint))
+				new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+				intersectionPoint))
 			{
 				System.out.println("Bottom " + i + ", iteration: " + iteration);
 				return intersectionPoint;
 			}
 			if(Intersector.intersectSegments(botRight, topRight, 
-											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
-											intersectionPoint))
+				new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+				intersectionPoint))
 			{
 				System.out.println("Right " + i + ", iteration: " + iteration);
 				return intersectionPoint;
 			}
 			if(Intersector.intersectSegments(topRight, topLeft, 
-											new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
-											intersectionPoint))
+				new Vector2(verts[i], verts[i+1]), new Vector2(verts[i+2], verts[i+3]), 
+				intersectionPoint))
 			{
 				System.out.println("Top " + i + ", iteration: " + iteration);
 				return intersectionPoint;
@@ -457,7 +470,6 @@ public class GameplayScreenFinal implements Screen {
 		}
 		
 		return getCollisionPoint(iteration+1, verts, r);
-		
 	}
 	
 	private void detectLaserCollisions()
@@ -472,10 +484,10 @@ public class GameplayScreenFinal implements Screen {
 				{
 					
 					// make a polygon the shape of the pipe rectangle
-					Polygon rectPoly = new Polygon(new float[] { 	r.x, 			r.y + r.height, 
-																	r.x + r.width, 	r.y + r.height, 
-																	r.x + r.width, 	r.y, 
-																	r.x, 			r.y });
+					Polygon rectPoly = new Polygon(new float[] { 	r.x, 		r.y + r.height, 
+											r.x + r.width, 	r.y + r.height, 
+											r.x + r.width, 	r.y, 
+											r.x, 		r.y });
 					
 					if(Intersector.overlapConvexPolygons(shipArray[0].getBoundingPoly(), rectPoly) == true && playing == true)
 					{
