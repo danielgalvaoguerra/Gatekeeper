@@ -1,0 +1,58 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+
+public class IntroButtonAnimation {
+	
+	private static final int COLS = 15;
+	private static final int ROWS = 6;
+	private static final int ssWidth = 4096;
+	private static final int ssHeight = 2915;
+	
+	private Animation animation;
+	private Texture spriteSheet;
+	private TextureRegion[] animationFrames;
+	private TextureRegion currentFrame;
+	private Sprite tempSprite;
+	
+	public IntroButtonAnimation()
+	{
+		spriteSheet = Assets.manager.get("images/introAnimationShort.png", Texture.class);
+		
+		spriteSheet.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+		
+		TextureRegion[][] temp = TextureRegion.split(spriteSheet, spriteSheet.getWidth()/COLS, spriteSheet.getHeight()/ROWS);
+		animationFrames = new TextureRegion[COLS * ROWS];
+		int index = 0;
+        for (int i = 0; i < ROWS; i++) {
+            for (int j = 0; j < COLS; j++) {
+            	animationFrames[index++] = temp[i][j];
+            }
+        }
+        animation = new Animation(0.025f, animationFrames);
+        System.out.println("MAKIN NEW ANIMATIOUNNN");
+	}
+	
+	public void update(SpriteBatch batch)
+	{
+		currentFrame = animation.getKeyFrame(GameplayScreenFinal.STATE_TIME, false);
+		tempSprite = new Sprite(currentFrame);
+		tempSprite.setSize(GameplayScreenFinal.viewport.getWorldWidth(), GameplayScreenFinal.viewport.getWorldHeight());
+		tempSprite.setPosition(0, 0);
+		tempSprite.draw(batch);
+	}
+	
+	public boolean isAniAlmostDone()
+	{
+		return animation.isAnimationFinished(GameplayScreenFinal.STATE_TIME*1.25f);
+	}
+	
+	public void dispose(){
+		spriteSheet.dispose();
+	}
+
+}
