@@ -1,0 +1,57 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Timer;
+import com.badlogic.gdx.utils.Timer.Task;
+
+public class ScorePopup {
+	
+	public float x = GameplayScreenFinal.PIPE_XPOS - 45;
+	public float y = GameplayScreenFinal.viewport.getWorldHeight() / 2f + 25;
+
+	private int points;
+	
+	Timer timer = new Timer();
+	private float alphaCounter = 1;
+	private boolean startCounter = false;
+	
+	private AssetManager privateManager;
+	
+	private BitmapFont font;
+	
+	public ScorePopup(float shipXPos, float shipYPos, int points)
+	{
+		this.x = shipXPos - 80;
+		this.y = shipYPos + 60;
+		this.points = points;
+		
+		privateManager = Assets.manager;
+		font = privateManager.get("fonts/warpDrive26.fnt", BitmapFont.class);
+		
+		timer.scheduleTask(new Task() {
+			
+			@Override
+			public void run() {
+				startCounter = true;
+			}
+		}, 1.8f);
+	}
+	
+	public void drawScore(SpriteBatch batch)
+	{
+		y += 0.3;
+		
+		font.setColor(new Color(0f, 0.9f, 0.4f, alphaCounter));
+		font.draw(batch, "+" + String.valueOf(points) + "!", x, y);
+		
+		if(startCounter == true)
+		{
+			alphaCounter -= 0.01;
+		}
+
+	}
+	
+}
