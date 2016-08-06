@@ -1,0 +1,48 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.assets.AssetManager;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+
+public class Assets {
+	
+	public String playBtnAni = "images/introPlayBtnSS_WithAlpha.png";
+	
+	public static AssetManager manager = new AssetManager();
+	public static TextureAtlas textureAtlas;
+
+	public static void beginLoading()
+	{
+		manager.clear();
+		
+		manager.load("images/loadingScreenSS.png", Texture.class);
+		manager.load("images/Gatekeeper Pack.atlas", TextureAtlas.class);
+		manager.load("images/explosionBadSS.png", Texture.class);
+		manager.load("images/laserDeathSS.png", Texture.class);
+		
+		manager.load("fonts/warpDrive26.fnt", BitmapFont.class);
+		manager.load("fonts/warpDrive32.fnt", BitmapFont.class);
+		manager.load("fonts/warpDrive56.fnt", BitmapFont.class);
+		
+		System.out.println("Message Received -- LOADING");
+	}
+	
+	public static void setTextureAtlas()
+	{
+		if(textureAtlas == null)
+		{
+			textureAtlas = manager.get("images/Gatekeeper Pack.atlas", TextureAtlas.class);
+		}
+	}
+	
+	public static boolean update()
+	{
+		return manager.update();
+	}
+	
+	public static boolean isAnimationLoaded()
+	{
+		return manager.isLoaded("images/loadingScreenSS.png", Texture.class);
+	}
+}
