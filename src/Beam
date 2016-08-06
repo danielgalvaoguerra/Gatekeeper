@@ -1,0 +1,65 @@
+package com.danielguerra.gatekeeper;
+
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
+import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.utils.viewport.Viewport;
+
+public class Beam {
+
+	private static final int FUSION_ANI_COLS = 20;
+	private static final int FUSION_ANI_ROWS = 2;
+	
+	private Animation fusionAnimation;
+	private Texture spriteSheet;
+	private TextureRegion[] animationFrames;
+	private TextureRegion currentFrame;
+	
+	private float beamX;
+	private float beamY;
+	private float beamWidth;
+	private float beamHeight;
+	
+	private Sprite beamSprite;
+	
+	
+	public Beam()
+	{
+		beamX = GameplayScreenFinal.PIPE_XPOS;
+		beamY = 0;
+		
+		spriteSheet = new Texture(Gdx.files.internal("images/newBeam.png"));
+		
+		TextureRegion[][] temp = TextureRegion.split(spriteSheet, spriteSheet.getWidth()/FUSION_ANI_COLS, spriteSheet.getHeight()/FUSION_ANI_ROWS);
+		animationFrames = new TextureRegion[FUSION_ANI_COLS * FUSION_ANI_ROWS];
+		int index = 0;
+        for (int i = 0; i < FUSION_ANI_ROWS; i++) {
+            for (int j = 0; j < FUSION_ANI_COLS; j++) {
+            	animationFrames[index] = temp[i][j];
+            	animationFrames[index++].getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            }
+        }
+        fusionAnimation = new Animation(0.025f, animationFrames);
+	}
+
+	public void update(SpriteBatch batch, float topPipeY)
+	{
+		currentFrame = fusionAnimation.getKeyFrame(GameplayScreenFinal.STATE_TIME, true);
+		beamHeight = topPipeY - 618; // the lower the second number the larger it starts scale wise 
+		beamSprite = new Sprite(currentFrame);
+		
+		beamY = 0;
+		
+		batch.draw(beamSprite, beamX, beamY);
+	}
+	
+	public float getFusionHeight()
+	{
+		return beamHeight;
+	}
+	
+}
